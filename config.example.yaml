@@ -1,0 +1,65 @@
+# ============================================================
+# GA4 Inventory Tracker — Configuration Template
+# Copy this file to config.yaml and fill in the real values.
+# Never commit config.yaml to version control (it contains secrets).
+# ============================================================
+
+# --- GA4 / Authentication ---
+ga4_property_id: "YOUR_PROPERTY_ID"          # Numeric GA4 property ID (e.g. "123456789")
+service_account_key_path: "credentials/YOUR_SERVICE_ACCOUNT_KEY.json"
+
+# --- Site ---
+domain: "your-dealership.com"
+inventory_path_prefix: "/inventory/"
+
+# --- Query ---
+date_range_days: 30           # Number of past days to analyze (rolling window ending yesterday)
+pageview_threshold: 10        # Pages with FEWER than this many views are considered underexposed
+max_results: 200              # Maximum number of underexposed pages to scrape (cap to control runtime)
+
+# Structural allow-pattern: page path must match this regex to be scraped.
+# Default: ensures exactly one slug segment after /inventory/ (blocks sub-paths like /inventory/slug/VIN).
+# Leave empty ("") to disable.
+page_path_pattern: "^/inventory/[^/]+/?$"
+
+# Blocklist pattern: page paths that MATCH this are rejected (placeholder/garbage slugs).
+# Default: rejects slugs ending with 3+ consecutive hyphen-number segments (e.g. -1-1-1-1).
+# Leave empty ("") to disable.
+page_path_exclude_pattern: "(-\\d+){3,}/?$"
+
+# --- Output ---
+output_csv_path: "output/underexposed_inventory.csv"
+
+# --- Scraping ---
+scrape_delay_seconds: 1.0     # Pause between page requests (seconds) to avoid overloading the server
+request_timeout_seconds: 10   # HTTP request timeout per page
+user_agent: "ga4-inventory-tracker/1.0 (internal tool)"
+max_retries: 3                # Number of retry attempts on transient HTTP errors
+
+# --- UTM Parameters ---
+# Appended to every URL fetched by the scraper so traffic shows up correctly in GA4
+utm_source: "InventoryBot"
+utm_medium: "under_exposed"
+
+# --- Detection Patterns ---
+# Regex pattern used to locate a VIN in plain page text (must capture the 17-char VIN in group 1)
+vin_text_pattern: "VIN[:\\s]+([A-HJ-NPR-Z0-9]{17})"
+
+# Ordered list of regex patterns for stock number extraction (group 1 = the stock number)
+# Common variants:
+#   "STOCK:M71097"   (no space, no hash)
+#   "Stock: #M73413" (space, hash optional)
+stock_patterns:
+  - "STOCK:\\s*([A-Z0-9]+)"
+  - "Stock[:\\s]+#?\\s*([A-Z0-9]+)"
+
+# JSON-LD field names to check for VIN (checked in order; first valid hit wins)
+jsonld_vin_fields:
+  - "vehicleIdentificationNumber"
+  - "vin"
+  - "serialNumber"
+
+# --- Testing ---
+# Set test_mode: true (or pass --test on the CLI) to limit records and enable DEBUG logging
+test_mode: false
+test_limit: 5     # Number of pages to process when test mode is active
